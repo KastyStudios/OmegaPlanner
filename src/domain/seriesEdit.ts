@@ -24,6 +24,7 @@ export interface ItemChanges {
   rrule?: string | null;
   priority?: Item['priority'];
   reminders?: number[];
+  color?: string;
 }
 
 /** Rows to write/delete, applied atomically by the repository. */
@@ -56,7 +57,7 @@ const now = () => new Date().toISOString();
 
 function applyItemFields(item: Item, ch: ItemChanges): Item {
   const next: Item = { ...item, updatedAt: now() };
-  for (const k of ['kind', 'title', 'notes', 'categoryId', 'goalId', 'allDay', 'priority', 'reminders'] as const) {
+  for (const k of ['kind', 'title', 'notes', 'categoryId', 'goalId', 'allDay', 'priority', 'reminders', 'color'] as const) {
     if (k in ch) (next as unknown as Record<string, unknown>)[k] = ch[k];
   }
   if ('rrule' in ch) next.rrule = ch.rrule ?? undefined;

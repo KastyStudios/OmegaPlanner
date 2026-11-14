@@ -30,6 +30,8 @@ export interface Item {
   done?: boolean;
   completedAt?: string;
   priority?: Priority;
+  /** Background color on the calendar (hex). Falls back to the default item color. */
+  color?: string;
   /** Minutes before start at which to notify. */
   reminders: number[];
   createdAt: string;

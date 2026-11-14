@@ -15,6 +15,18 @@ body {
   background: #020617;
 }
 
+/* Default item background when neither the item nor Settings set a color. */
+:root {
+  --op-event-bg: #eef2ff;
+  --op-event-fg: #1e293b;
+  --op-event-border: #c7d2fe;
+}
+.dark {
+  --op-event-bg: #1e293b;
+  --op-event-fg: #e2e8f0;
+  --op-event-border: #334155;
+}
+
 /* ---------- FullCalendar theming ---------- */
 .fc {
   --fc-border-color: #e2e8f0;
@@ -51,8 +63,13 @@ body {
 .fc .op-done {
   opacity: 0.5;
 }
-.fc .op-done .op-title {
+.fc .op-done .op-title-text {
   text-decoration: line-through;
+}
+/* The category shows as a line under the title. */
+.fc .op-title {
+  border-bottom: 2px solid var(--op-cat, transparent);
+  padding-bottom: 1px;
 }
 .dark .fc {
   --fc-border-color: #1e293b;

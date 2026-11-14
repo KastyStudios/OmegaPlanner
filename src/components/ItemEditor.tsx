@@ -6,6 +6,7 @@ import { buildRRule, parseRRule, type RecurrenceForm } from '../domain/recurrenc
 import { reminderLabel } from '../domain/reminders';
 import type { ItemChanges } from '../domain/seriesEdit';
 import { fromInputs, nextFullHour, toDateInput, toTimeInput } from '../lib/dates';
+import { ColorPicker } from './ColorPicker';
 import { useApp, type EditorRequest } from './context';
 import { RecurrenceEditor } from './RecurrenceEditor';
 import { Button, Field, inputCls, Modal } from './ui';
@@ -24,6 +25,7 @@ interface FormState {
   categoryId: string;
   goalId: string;
   priority: '' | '1' | '2' | '3';
+  color: string; // '' = default
   reminders: number[];
   scheduled: boolean;
   allDay: boolean;
@@ -64,6 +66,7 @@ function initialState({ item, occurrence, defaults = {} }: EditorRequest): FormS
     categoryId: item?.categoryId ?? defaults.categoryId ?? '',
     goalId: item?.goalId ?? defaults.goalId ?? '',
     priority: item?.priority ? (String(item.priority) as FormState['priority']) : '',
+    color: item?.color ?? '',
     reminders: item?.reminders ?? [],
     scheduled: item ? !!item.start : defaults.scheduled ?? (kind !== 'task' || !!defaults.start),
     allDay,
@@ -118,6 +121,7 @@ export function ItemEditor({ request, onClose }: { request: EditorRequest; onClo
       goalId: f.goalId || undefined,
       priority: f.priority ? (Number(f.priority) as Priority) : undefined,
       reminders: isScheduled ? f.reminders : [],
+      color: f.color || undefined,
       allDay: f.allDay,
       start: times.start,
       end: times.end,
@@ -134,6 +138,7 @@ export function ItemEditor({ request, onClose }: { request: EditorRequest; onClo
           (f.goalId || undefined) !== item.goalId ||
           (fields.priority ?? undefined) !== item.priority ||
           f.allDay !== item.allDay ||
+          (f.color || undefined) !== item.color ||
           JSON.stringify([...f.reminders].sort()) !== JSON.stringify([...item.reminders].sort());
         const ruleChanged = rrule !== (item.rrule ? buildRRule(parseRRule(item.rrule)) : null);
         const scope = await askScope('edit', !seriesChanged && !ruleChanged);
@@ -291,6 +296,10 @@ export function ItemEditor({ request, onClose }: { request: EditorRequest; onClo
             </Field>
           )}
         </div>
+
+        <Field label="Background color" group>
+          <ColorPicker value={f.color} onChange={(color) => set({ color })} />
+        </Field>
 
         {isScheduled && (
           <Field label="Reminders" group>

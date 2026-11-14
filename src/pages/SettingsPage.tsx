@@ -8,6 +8,8 @@ import type { Category } from '../db/schema';
 import { downloadBackup, exportBackup, importBackup, validateBackup } from '../services/backup';
 import { checkReminders, notificationsSupported } from '../services/reminderService';
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme';
+import { ColorPicker } from '../components/ColorPicker';
+import { itemColors, setDefaultItemColor, useDefaultItemColor } from '../lib/eventColors';
 
 const card = 'rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800';
 
@@ -98,9 +100,11 @@ function CategoryRow({ category }: { category: Category }) {
 
 function AppearanceSection() {
   const [theme, setTheme] = useState<ThemePref>(getThemePref());
+  const defaultColor = useDefaultItemColor();
   return (
     <Section title="Appearance">
-      <div className={`${card} flex gap-4 text-sm`}>
+      <div className={`${card} space-y-4 text-sm`}>
+      <div className="flex gap-4">
         {(['system', 'light', 'dark'] as ThemePref[]).map((t) => (
           <label key={t} className="flex cursor-pointer items-center gap-2 capitalize">
             <input
@@ -115,6 +119,19 @@ function AppearanceSection() {
             {t}
           </label>
         ))}
+      </div>
+      <div>
+        <p className="mb-1 font-medium">Default item color</p>
+        <p className="mb-2 text-xs text-slate-500 dark:text-slate-400">
+          Background for calendar items that don't have their own color. The category shows as a line under the title.
+        </p>
+        <ColorPicker
+          value={defaultColor ?? ''}
+          onChange={(c) => setDefaultItemColor(c || null)}
+          defaultLabel="Theme default"
+          defaultSwatch={itemColors(undefined, null)}
+        />
+      </div>
       </div>
     </Section>
   );

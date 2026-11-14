@@ -13,6 +13,7 @@ import { editOccurrenceScoped, setOccurrenceDone, updateItem } from '../db/repo'
 import type { Occurrence } from '../domain/recurrence';
 import type { ItemChanges } from '../domain/seriesEdit';
 import { useOccurrences } from '../hooks/usePlanner';
+import { itemColors, useDefaultItemColor } from '../lib/eventColors';
 
 const VIEW_KEY = 'omegaplanner.calendarView';
 const DEFAULT_COLOR = '#64748b';
@@ -34,6 +35,7 @@ export function CalendarPage() {
   const [range, setRange] = useState(() => ({ start: addDays(startOfMonth(new Date()), -7), end: addDays(endOfMonth(new Date()), 7) }));
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const occurrences = useOccurrences(data, range.start, range.end);
+  const defaultColor = useDefaultItemColor();
 
   const unscheduled = useMemo(
     () => data.items.filter((i) => i.kind === 'task' && !i.start && !i.done).sort((a, b) => (a.priority ?? 9) - (b.priority ?? 9)),
@@ -45,7 +47,8 @@ export function CalendarPage() {
       occurrences
         .filter((o) => !hidden.has(o.item.categoryId ?? ''))
         .map((o) => {
-          const color = data.categoryById.get(o.item.categoryId ?? '')?.color ?? DEFAULT_COLOR;
+          const categoryColor = data.categoryById.get(o.item.categoryId ?? '')?.color;
+          const c = itemColors(o.item.color, defaultColor);
           const zero = o.end === o.start;
           return {
             id: o.key,
@@ -53,15 +56,15 @@ export function CalendarPage() {
             start: o.start,
             end: zero ? undefined : o.end,
             allDay: o.allDay,
-            backgroundColor: color,
-            borderColor: color,
-            textColor: '#ffffff',
+            backgroundColor: c.bg,
+            borderColor: c.border,
+            textColor: c.fg,
             classNames: o.done ? ['op-done'] : [],
             durationEditable: o.item.kind !== 'deadline',
-            extendedProps: { occ: o },
+            extendedProps: { occ: o, categoryColor },
           };
         }),
-    [occurrences, hidden, data.categoryById],
+    [occurrences, hidden, data.categoryById, defaultColor],
   );
 
   // Make unscheduled to-dos draggable onto the calendar.
@@ -185,7 +188,7 @@ export function CalendarPage() {
         </div>
 
         <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-          <div className="mb-2 flex items-baseline justify-between">
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
             <h2 className="text-sm font-semibold">Show categories</h2>
             <Link to="/settings#import" className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
               Import from Google…
@@ -217,26 +220,30 @@ function renderEvent(arg: EventContentArg) {
       </div>
     );
   }
+  const categoryColor = arg.event.extendedProps.categoryColor as string | undefined;
   // In week/day views a timed event has room to stack the title under the time.
   const stacked = arg.view.type.startsWith('timeGrid') && !arg.event.allDay;
   return (
-    <div className={`flex min-w-0 overflow-hidden ${stacked ? 'flex-wrap content-start items-center gap-x-1' : 'items-center gap-1'} ${isList ? '' : 'px-0.5'}`}>
+    <div className={`flex min-w-0 overflow-hidden ${stacked ? 'flex-wrap content-start items-center gap-x-1' : 'items-center gap-1'} ${isList ? '' : 'px-0.5 py-px'}`}>
       <span
         data-toggle-done
         role="checkbox"
         aria-checked={occ.done}
         title={occ.done ? 'Mark not done' : 'Mark done'}
-        className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border text-[9px] leading-none ${
-          isList ? 'border-slate-400' : 'border-white/80'
-        } ${occ.done ? (isList ? 'bg-slate-400 text-white' : 'bg-white/90 text-slate-700') : ''}`}
+        className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-current text-[9px] font-bold leading-none opacity-80"
       >
         {occ.done ? '✓' : ''}
       </span>
-      {arg.timeText && !isList && <span className="shrink-0 opacity-90">{arg.timeText}</span>}
-      <span className={`op-title font-medium ${stacked ? 'w-full break-words leading-tight' : 'truncate'}`}>
-        {occ.item.kind === 'deadline' ? '⚑ ' : ''}
-        {arg.event.title}
-        {occ.recurring ? ' ↻' : ''}
+      {arg.timeText && !isList && <span className="shrink-0 opacity-80">{arg.timeText}</span>}
+      <span
+        className={`op-title font-medium ${stacked ? 'block w-fit max-w-full break-words leading-tight' : 'inline-block min-w-0 max-w-full truncate'}`}
+        style={categoryColor ? ({ '--op-cat': categoryColor } as React.CSSProperties) : undefined}
+      >
+        <span className="op-title-text">
+          {occ.item.kind === 'deadline' ? '⚑ ' : ''}
+          {arg.event.title}
+          {occ.recurring ? ' ↻' : ''}
+        </span>
       </span>
     </div>
   );
