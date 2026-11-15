@@ -118,7 +118,7 @@ async function tokenRequest(body: Record<string, string>) {
   }
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = json.error_description || json.error || `HTTP ${res.status}`;
+    const msg = [json.error, json.error_description].filter(Boolean).join(': ') || `HTTP ${res.status}`;
     throw new DropboxError(`Dropbox sign-in failed: ${msg}`, res.status === 400 || res.status === 401 ? 'auth' : 'other');
   }
   return json as { access_token: string; expires_in: number; refresh_token?: string; account_id?: string };
@@ -178,6 +178,7 @@ export async function disconnect(): Promise<void> {
 const headerJson = (v: unknown) => JSON.stringify(v).replace(/[\u007f-￿]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
 
 async function call(url: string, init: (token: string) => RequestInit): Promise<Response> {
+  let summary = '';
   for (let attempt = 0; attempt < 2; attempt++) {
     const token = await accessToken(attempt > 0);
     let res: Response;
@@ -187,9 +188,14 @@ async function call(url: string, init: (token: string) => RequestInit): Promise<
       throw new DropboxError('No connection to Dropbox.', 'network');
     }
     if (res.status !== 401) return res;
+    summary = await errorSummary(res);
+    // 401 is also used for e.g. a missing permission; only a bad token warrants a new sign-in.
+    if (!/invalid_access_token|expired_access_token|user_suspended/.test(summary)) {
+      throw new DropboxError(`Dropbox refused the request: ${summary || 'unauthorized'}`, 'other');
+    }
   }
   saveAuth(null);
-  throw new DropboxError('Dropbox access was revoked. Connect again in Settings.', 'auth');
+  throw new DropboxError(`Dropbox access was revoked (${summary}). Connect again in Settings.`, 'auth');
 }
 
 async function errorSummary(res: Response): Promise<string> {

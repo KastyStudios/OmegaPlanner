@@ -17,17 +17,29 @@ export interface SyncStatus {
 /* ---------------- status store ---------------- */
 
 const LAST_KEY = 'omegaplanner.lastSync';
-const readLast = () => {
+const ERROR_KEY = 'omegaplanner.syncError';
+const read = (k: string) => {
   try {
-    return localStorage.getItem(LAST_KEY) ?? undefined;
+    return localStorage.getItem(k) ?? undefined;
   } catch {
     return undefined;
   }
 };
-let status: SyncStatus = { state: dropbox.isConnected() ? 'idle' : 'disconnected', lastSync: readLast() };
+// The last error survives reloads (e.g. a failed sign-in redirect) so it can be shown.
+let status: SyncStatus = {
+  state: dropbox.isConnected() ? 'idle' : 'disconnected',
+  lastSync: read(LAST_KEY),
+  error: read(ERROR_KEY),
+};
 const subs = new Set<() => void>();
 function setStatus(s: Partial<SyncStatus>) {
   status = { ...status, ...s };
+  try {
+    if (status.error) localStorage.setItem(ERROR_KEY, status.error);
+    else localStorage.removeItem(ERROR_KEY);
+  } catch {
+    /* ignore */
+  }
   subs.forEach((fn) => fn());
 }
 export const getSyncStatus = () => status;
