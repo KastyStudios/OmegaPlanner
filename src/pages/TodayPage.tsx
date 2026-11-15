@@ -3,7 +3,8 @@ import { useMemo } from 'react';
 import { useApp } from '../components/context';
 import { QuickAdd } from '../components/QuickAdd';
 import { OccurrenceRow, TaskRow } from '../components/Rows';
-import { Button, EmptyState, ProgressBar, Section } from '../components/ui';
+import { DayStrip } from '../components/DayStrip';
+import { Button, EmptyState, List, ProgressBar, Section } from '../components/ui';
 import { goalProgress, progressText } from '../domain/goals';
 import { useOccurrences } from '../hooks/usePlanner';
 
@@ -30,33 +31,35 @@ export function TodayPage() {
   const unscheduled = data.items.filter((i) => i.kind === 'task' && !i.start && !i.done).sort((a, b) => (a.priority ?? 9) - (b.priority ?? 9));
   const doneToday = todays.filter((o) => o.done).length;
   const overdueCount = overdue.recent.length + overdue.oneOff.length;
+  const next = todays.find((o) => !o.done && !o.allDay && Date.parse(o.end) > now.getTime());
 
   return (
-    <div className="mx-auto max-w-3xl p-4 sm:p-8">
-      <header className="mb-6">
-        <p className="text-sm text-slate-500 dark:text-slate-400">{format(now, 'EEEE d MMMM yyyy')}</p>
-        <h1 className="text-2xl font-semibold">{greeting(now)}</h1>
-        {todays.length > 0 && (
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-            {doneToday} of {todays.length} things done today
-          </p>
-        )}
+    <div className="mx-auto max-w-3xl px-4 pb-10 pt-6 sm:px-8 sm:pt-12">
+      <header className="mb-7">
+        <h1 className="text-[clamp(2.1rem,6vw,3.25rem)] font-extrabold leading-[0.95] tracking-[-0.035em]">
+          {format(now, 'EEEE')}
+          <br />
+          <span className="text-slate-400 dark:text-slate-500">{format(now, 'd MMMM')}</span>
+        </h1>
+        <p className="mt-3 text-[15px] text-slate-600 dark:text-slate-400">{summary(todays.length, doneToday, next && `${next.title} at ${format(new Date(next.start), 'HH:mm')}`)}</p>
       </header>
 
-      <Section title="Quick add">
+      <DayStrip day={today} occurrences={todays} />
+
+      <div className="mb-9">
         <QuickAdd />
-      </Section>
+      </div>
 
       {overdueCount > 0 && (
         <Section title={`Overdue (${overdueCount})`}>
-          <div className="space-y-1.5">
+          <List>
             {overdue.oneOff.map((i) => (
               <TaskRow key={i.id} item={i} />
             ))}
             {overdue.recent.map((o) => (
               <OccurrenceRow key={o.key} occ={o} showDay />
             ))}
-          </div>
+          </List>
         </Section>
       )}
 
@@ -69,11 +72,11 @@ export function TodayPage() {
         }
       >
         {todays.length ? (
-          <div className="space-y-1.5">
+          <List>
             {todays.map((o) => (
               <OccurrenceRow key={o.key} occ={o} />
             ))}
-          </div>
+          </List>
         ) : (
           <EmptyState>Nothing planned today. Press N to add something.</EmptyState>
         )}
@@ -81,11 +84,11 @@ export function TodayPage() {
 
       <Section title="Deadlines in the next 7 days">
         {deadlines.length ? (
-          <div className="space-y-1.5">
+          <List>
             {deadlines.map((o) => (
               <OccurrenceRow key={o.key} occ={o} showDay />
             ))}
-          </div>
+          </List>
         ) : (
           <EmptyState>No deadlines coming up.</EmptyState>
         )}
@@ -93,15 +96,15 @@ export function TodayPage() {
 
       {data.goals.length > 0 && (
         <Section title="Goals">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
             {data.goals.map((g) => {
               const p = goalProgress(g, data.items, data.completions, now, data.overrides);
               const color = data.categoryById.get(g.categoryId ?? '')?.color;
               return (
-                <div key={g.id} className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-                  <div className="mb-2 flex items-baseline justify-between gap-2">
-                    <span className="truncate text-sm font-medium">{g.title}</span>
-                    <span className="shrink-0 text-xs tabular-nums text-slate-500">
+                <div key={g.id}>
+                  <div className="mb-1.5 flex items-baseline justify-between gap-2">
+                    <span className="truncate text-[15px] font-semibold">{g.title}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-slate-500 dark:text-slate-400">
                       {progressText(p)}
                     </span>
                   </div>
@@ -115,11 +118,11 @@ export function TodayPage() {
 
       <Section title={`To-do (${unscheduled.length})`}>
         {unscheduled.length ? (
-          <div className="space-y-1.5">
+          <List>
             {unscheduled.slice(0, 8).map((i) => (
               <TaskRow key={i.id} item={i} />
             ))}
-          </div>
+          </List>
         ) : (
           <EmptyState>Your to-do list is empty.</EmptyState>
         )}
@@ -128,9 +131,11 @@ export function TodayPage() {
   );
 }
 
-function greeting(d: Date) {
-  const h = d.getHours();
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+function summary(total: number, done: number, next?: string) {
+  if (!total) return 'Nothing planned yet.';
+  const left = total - done;
+  const count = left === 0 ? `All ${total} done for today.` : `${left} of ${total} still to do.`;
+  return next ? `${count} Next: ${next}.` : count;
 }
 
 function nextHourToday(now: Date) {

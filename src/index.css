@@ -8,57 +8,154 @@ body,
   height: 100%;
 }
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  background: #f8fafc;
+  font-family: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: 'tnum' 0;
+  background: #f4f5f1;
+  color: #1a2233;
+  -webkit-font-smoothing: antialiased;
 }
 .dark body {
-  background: #020617;
+  background: #121620;
+  color: #e9ebef;
+}
+
+/* Keyboard focus is always visible, in pen blue. */
+:focus-visible {
+  outline: 2px solid #2340c8;
+  outline-offset: 2px;
+}
+.dark :focus-visible {
+  outline-color: #8e9fff;
+}
+
+/* Times and counts line up. */
+.tabular-nums,
+time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Highlighter marks (categories) ----------
+   --mark is the category color; the stroke is translucent so ink text stays readable
+   on any color, including bright yellow and cyan. */
+.op-mark {
+  background: linear-gradient(transparent 12%, color-mix(in srgb, var(--mark) 55%, transparent) 12% 88%, transparent 88%);
+  border-radius: 0.2em 0.35em 0.25em 0.4em;
+  padding: 0 0.35em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.dark .op-mark {
+  background: linear-gradient(transparent 12%, color-mix(in srgb, var(--mark) 30%, transparent) 12% 88%, transparent 88%);
+}
+
+/* ---------- Today: the day strip ---------- */
+.op-stroke {
+  background: color-mix(in srgb, var(--mark) 66%, #ffffff);
+  border-radius: 3px 6px 4px 7px;
+  transform-origin: left center;
+  animation: op-draw 520ms cubic-bezier(0.3, 0.7, 0.2, 1) both;
+  animation-delay: var(--delay, 0ms);
+}
+.dark .op-stroke {
+  background: color-mix(in srgb, var(--mark) 52%, #1a202b);
+}
+.op-stroke.op-stroke-done {
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--mark) 30%, transparent) 0 4px, transparent 4px 8px);
+}
+@keyframes op-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .op-stroke {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Default item background when neither the item nor Settings set a color. */
 :root {
-  --op-event-bg: #eef2ff;
-  --op-event-fg: #1e293b;
-  --op-event-border: #c7d2fe;
+  --op-event-bg: #e3e8fb;
+  --op-event-fg: #1a2233;
+  --op-event-border: #c3cdf5;
 }
 .dark {
-  --op-event-bg: #1e293b;
-  --op-event-fg: #e2e8f0;
-  --op-event-border: #334155;
+  --op-event-bg: #242b38;
+  --op-event-fg: #e9ebef;
+  --op-event-border: #353c49;
 }
 
 /* ---------- FullCalendar theming ---------- */
 .fc {
-  --fc-border-color: #e2e8f0;
-  --fc-today-bg-color: rgb(79 70 229 / 0.06);
+  --fc-border-color: #e3e5df;
+  --fc-today-bg-color: rgb(35 64 200 / 0.045);
   --fc-page-bg-color: #ffffff;
-  --fc-neutral-bg-color: #f1f5f9;
-  --fc-list-event-hover-bg-color: #f1f5f9;
-  --fc-button-bg-color: #ffffff;
-  --fc-button-border-color: #cbd5e1;
-  --fc-button-text-color: #334155;
-  --fc-button-hover-bg-color: #f1f5f9;
-  --fc-button-hover-border-color: #cbd5e1;
-  --fc-button-active-bg-color: #4f46e5;
-  --fc-button-active-border-color: #4f46e5;
-  --fc-now-indicator-color: #ef4444;
+  --fc-neutral-bg-color: #f4f5f1;
+  --fc-list-event-hover-bg-color: #f4f5f1;
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: #dadde6;
+  --fc-button-text-color: #353c49;
+  --fc-button-hover-bg-color: #eaece6;
+  --fc-button-hover-border-color: #c2c6be;
+  --fc-button-active-bg-color: #1a2233;
+  --fc-button-active-border-color: #1a2233;
+  --fc-now-indicator-color: #2340c8;
   font-size: 0.85rem;
 }
 .fc .fc-button {
   font-size: 0.8rem;
   font-weight: 500;
-  text-transform: capitalize;
+  text-transform: none;
   box-shadow: none !important;
+  border-radius: 8px;
+}
+.fc .fc-button-group > .fc-button {
+  border-radius: 0;
+}
+.fc .fc-button-group > .fc-button:first-child {
+  border-radius: 8px 0 0 8px;
+}
+.fc .fc-button-group > .fc-button:last-child {
+  border-radius: 0 8px 8px 0;
 }
 .fc .fc-button-primary:not(:disabled).fc-button-active {
   color: #fff;
 }
 .fc .fc-toolbar-title {
-  font-size: 1.15rem;
+  font-size: 1.35rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.fc .fc-col-header-cell-cushion {
   font-weight: 600;
+  padding: 6px 4px;
+}
+.fc .fc-day-today .fc-col-header-cell-cushion,
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: #2340c8;
+  font-weight: 800;
+}
+.fc .fc-timegrid-slot-label-cushion,
+.fc .fc-timegrid-axis-cushion {
+  color: #646b75;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+}
+.fc .fc-timegrid-now-indicator-line {
+  border-width: 2px 0 0;
 }
 .fc .fc-event {
   cursor: pointer;
+  border-radius: 6px;
+}
+.fc .fc-timegrid-event {
+  box-shadow: 0 0 0 1px var(--fc-page-bg-color);
 }
 .fc .op-done {
   opacity: 0.5;
@@ -70,21 +167,36 @@ body {
 .fc .op-title {
   border-bottom: 2px solid var(--op-cat, transparent);
   padding-bottom: 1px;
+  font-weight: 600;
 }
 .dark .fc {
-  --fc-border-color: #1e293b;
-  --fc-page-bg-color: #0f172a;
-  --fc-neutral-bg-color: #1e293b;
-  --fc-list-event-hover-bg-color: #1e293b;
-  --fc-today-bg-color: rgb(129 140 248 / 0.1);
-  --fc-button-bg-color: #1e293b;
-  --fc-button-border-color: #334155;
-  --fc-button-text-color: #e2e8f0;
-  --fc-button-hover-bg-color: #334155;
-  --fc-button-hover-border-color: #475569;
+  --fc-border-color: #262d3a;
+  --fc-page-bg-color: #1a202b;
+  --fc-neutral-bg-color: #121620;
+  --fc-list-event-hover-bg-color: #242b38;
+  --fc-today-bg-color: rgb(142 159 255 / 0.07);
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: #353c49;
+  --fc-button-text-color: #e9ebef;
+  --fc-button-hover-bg-color: #242b38;
+  --fc-button-hover-border-color: #4a515d;
+  --fc-button-active-bg-color: #e9ebef;
+  --fc-button-active-border-color: #e9ebef;
+  --fc-now-indicator-color: #8e9fff;
+}
+.dark .fc .fc-button-primary:not(:disabled).fc-button-active {
+  color: #121620;
+}
+.dark .fc .fc-day-today .fc-col-header-cell-cushion,
+.dark .fc .fc-day-today .fc-daygrid-day-number {
+  color: #8e9fff;
+}
+.dark .fc .fc-timegrid-slot-label-cushion,
+.dark .fc .fc-timegrid-axis-cushion {
+  color: #959ca8;
 }
 .dark .fc .fc-list-day-cushion {
-  background: #1e293b;
+  background: #242b38;
 }
 
 @media (max-width: 640px) {
@@ -92,6 +204,6 @@ body {
     margin-top: 0.5rem;
   }
   .fc .fc-toolbar-title {
-    font-size: 1rem;
+    font-size: 1.1rem;
   }
 }

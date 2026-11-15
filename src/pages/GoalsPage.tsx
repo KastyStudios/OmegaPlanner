@@ -2,7 +2,7 @@ import { differenceInCalendarDays, format } from 'date-fns';
 import { useState } from 'react';
 import { useApp } from '../components/context';
 import { PriorityTag } from '../components/Rows';
-import { Button, CategoryBadge, Checkbox, EmptyState, Field, inputCls, Modal, ProgressBar } from '../components/ui';
+import { Button, CategoryBadge, Checkbox, EmptyState, Field, Icon, inputCls, Modal, ProgressBar } from '../components/ui';
 import { deleteGoal, saveGoal, setItemDone } from '../db/repo';
 import type { Goal, GoalMode } from '../db/schema';
 import { formatAmount, goalProgress, progressText } from '../domain/goals';
@@ -13,11 +13,12 @@ export function GoalsPage() {
   const { data } = useApp();
   const [editing, setEditing] = useState<Goal | 'new' | null>(null);
   return (
-    <div className="mx-auto max-w-4xl p-4 sm:p-8">
+    <div className="mx-auto max-w-4xl px-4 pb-10 pt-6 sm:px-8 sm:pt-12">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Goals</h1>
+        <h1 className="text-[2rem] font-extrabold leading-tight tracking-[-0.03em]">Goals</h1>
         <Button variant="primary" onClick={() => setEditing('new')}>
-          + New goal
+          <Icon name="plus" className="h-4 w-4" />
+          New goal
         </Button>
       </div>
       {data.goals.length === 0 ? (
@@ -47,16 +48,16 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
   const daysLeft = goal.targetDate ? differenceInCalendarDays(fromInputs(goal.targetDate), now) : undefined;
 
   return (
-    <div className="flex flex-col rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+    <div className="flex flex-col rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgb(18_22_32/0.06),0_8px_24px_-12px_rgb(18_22_32/0.12)] dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800 sm:p-6">
       <div className="mb-1 flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="truncate text-lg font-semibold">{goal.title}</h2>
+          <h2 className="truncate text-xl font-bold tracking-tight">{goal.title}</h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-medium uppercase dark:bg-slate-800">{goal.mode}</span>
+            <span className="font-medium">{goal.mode === 'habit' ? 'Habit' : 'Milestone'}</span>
             <CategoryBadge category={cat} />
             {daysLeft !== undefined && (
-              <span className={daysLeft < 0 ? 'text-red-600' : ''}>
-                {daysLeft < 0 ? `${-daysLeft} days past target` : daysLeft === 0 ? 'Target is today' : `${daysLeft} days left`} ·{' '}
+              <span className={daysLeft < 0 ? 'text-red-700 dark:text-red-400' : ''}>
+                {daysLeft < 0 ? `${-daysLeft} days past target` : daysLeft === 0 ? 'Target is today' : `${daysLeft} days left`}, until{' '}
                 {format(fromInputs(goal.targetDate!), 'd MMM yyyy')}
               </span>
             )}
@@ -70,10 +71,10 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
 
       <div className="my-3">
         <div className="mb-1.5 flex items-baseline justify-between text-sm">
-          <span className="font-medium tabular-nums">{progressText(p)}</span>
+          <span className="font-semibold tabular-nums">{progressText(p)}</span>
           {p.streak !== undefined && p.streak > 0 && (
-            <span className="text-xs text-amber-600">
-              🔥 {p.streak} {goal.habitTarget?.period}
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+              {p.streak} {goal.habitTarget?.period}
               {p.streak > 1 ? 's' : ''} streak
             </span>
           )}
@@ -82,12 +83,12 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
         {p.unit === 'hours' && (
           <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
             {formatAmount(p.planned ?? 0)} h planned {p.periodLabel}
-            {(p.planned ?? 0) < p.total && ` · schedule ${formatAmount(p.total - (p.planned ?? 0))} h more to reach the target`}
+            {(p.planned ?? 0) < p.total && `. Schedule ${formatAmount(p.total - (p.planned ?? 0))} h more to reach the target.`}
           </p>
         )}
       </div>
 
-      <div className="mt-auto space-y-1">
+      <div className="mt-auto divide-y divide-slate-200 border-t border-slate-200 dark:divide-slate-800 dark:border-slate-800">
         {linked.length === 0 && (
           <p className="text-xs text-slate-500 dark:text-slate-400">
             {goal.mode === 'habit' ? 'Link a recurring event (e.g. Gym) to start tracking.' : 'Add tasks to break this goal down.'}
@@ -100,10 +101,10 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
             tabIndex={0}
             onClick={() => openEditor({ item: i })}
             onKeyDown={(e) => e.key === 'Enter' && openEditor({ item: i })}
-            className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+            className="flex cursor-pointer items-center gap-2.5 py-2 text-sm font-medium hover:text-indigo-700 dark:hover:text-indigo-300"
           >
             {i.rrule ? (
-              <span className="w-5 text-center text-slate-400">↻</span>
+              <Icon name="repeat" className="mx-[3px] h-4 w-4 shrink-0 text-slate-400" />
             ) : (
               <Checkbox checked={!!i.done} onChange={(v) => setItemDone(i.id, v)} color={cat?.color} label={`Mark ${i.title} done`} />
             )}
@@ -112,7 +113,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
             {!i.rrule && i.start && (
               <span className="shrink-0 text-xs tabular-nums text-slate-400">
                 {friendlyDay(new Date(i.start))}
-                {!i.allDay && i.end && ` · ${formatAmount((Date.parse(i.end) - Date.parse(i.start)) / 3_600_000)} h`}
+                {!i.allDay && i.end && `, ${formatAmount((Date.parse(i.end) - Date.parse(i.start)) / 3_600_000)} h`}
               </span>
             )}
             <PriorityTag p={i.priority} />
@@ -120,7 +121,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
         ))}
         <Button
           variant="ghost"
-          className="mt-1 !px-1.5"
+          className="!mt-0 w-full !justify-start !rounded-none !px-0 !py-2.5 hover:!bg-transparent hover:!text-indigo-700 dark:hover:!text-indigo-300"
           onClick={() =>
             openEditor({ defaults: { goalId: goal.id, categoryId: goal.categoryId, kind: goal.mode === 'habit' ? 'event' : 'task' } })
           }

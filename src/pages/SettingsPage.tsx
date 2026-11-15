@@ -12,7 +12,7 @@ import { getThemePref, setThemePref, type ThemePref } from '../lib/theme';
 import { ColorPicker } from '../components/ColorPicker';
 import { itemColors, setDefaultItemColor, useDefaultItemColor } from '../lib/eventColors';
 
-const card = 'rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800';
+const card = 'rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgb(18_22_32/0.06),0_8px_24px_-12px_rgb(18_22_32/0.12)] dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800 sm:p-6';
 
 export function SettingsPage() {
   const { hash } = useLocation();
@@ -20,8 +20,8 @@ export function SettingsPage() {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [hash]);
   return (
-    <div className="mx-auto max-w-2xl p-4 sm:p-8">
-      <h1 className="mb-6 text-2xl font-semibold">Settings</h1>
+    <div className="mx-auto max-w-2xl px-4 pb-10 pt-6 sm:px-8 sm:pt-12">
+      <h1 className="mb-6 text-[2rem] font-extrabold leading-tight tracking-[-0.03em]">Settings</h1>
       <div id="sync">
         <Section title="Sync between devices (Dropbox)">
           <div className={card}>

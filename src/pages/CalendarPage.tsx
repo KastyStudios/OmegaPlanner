@@ -150,7 +150,7 @@ export function CalendarPage() {
 
   return (
     <div className="flex h-full flex-col gap-4 p-3 sm:p-5 lg:flex-row">
-      <div className="flex min-h-[600px] flex-1 flex-col rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+      <div className="flex min-h-[600px] flex-1 flex-col rounded-2xl bg-white p-3 shadow-[0_1px_2px_rgb(18_22_32/0.06),0_8px_24px_-12px_rgb(18_22_32/0.12)] dark:bg-slate-900 dark:shadow-none dark:ring-1 dark:ring-slate-800 sm:p-4">
         <FullCalendar
           ref={calRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
@@ -193,20 +193,20 @@ export function CalendarPage() {
         />
       </div>
 
-      <aside className="w-full shrink-0 space-y-5 lg:w-64">
-        <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
-          <h2 className="mb-1 text-sm font-semibold">Unscheduled to-dos</h2>
+      <aside className="w-full shrink-0 space-y-8 px-1 pb-6 lg:w-64 lg:pt-2">
+        <div>
+          <h2 className="mb-0.5 text-[15px] font-bold tracking-tight">Unscheduled to-dos</h2>
           <p className="mb-3 text-xs text-slate-500 dark:text-slate-400">Drag one onto the calendar to schedule it.</p>
-          <div ref={todoPanelRef} className="space-y-1.5">
+          <div ref={todoPanelRef} className="divide-y divide-slate-200 border-y border-slate-200 dark:divide-slate-800 dark:border-slate-800">
             {unscheduled.map((t) => (
               <div
                 key={t.id}
                 data-todo-id={t.id}
                 data-title={t.title}
                 onClick={() => openEditor({ item: t })}
-                className="flex cursor-grab items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm hover:border-indigo-300 active:cursor-grabbing dark:border-slate-700 dark:bg-slate-800"
-                style={{ borderLeft: `3px solid ${data.categoryById.get(t.categoryId ?? '')?.color ?? DEFAULT_COLOR}` }}
+                className="flex cursor-grab items-center gap-2.5 py-2 text-sm font-medium hover:text-indigo-700 active:cursor-grabbing dark:hover:text-indigo-300"
               >
+                <span aria-hidden className="h-3.5 w-1.5 shrink-0 rounded-sm" style={{ backgroundColor: data.categoryById.get(t.categoryId ?? '')?.color ?? DEFAULT_COLOR }} />
                 <span className="truncate">{t.title}</span>
               </div>
             ))}
@@ -214,14 +214,14 @@ export function CalendarPage() {
           </div>
         </div>
 
-        <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
+        <div>
           <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3">
-            <h2 className="text-sm font-semibold">Show categories</h2>
+            <h2 className="text-[15px] font-bold tracking-tight">Show categories</h2>
             <Link to="/settings#import" className="text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400">
               Import from Google…
             </Link>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {[...data.categories, { id: '', name: 'Uncategorized', color: DEFAULT_COLOR }].map((c) => (
               <label key={c.id} className="flex cursor-pointer items-center gap-2 text-sm">
                 <input type="checkbox" checked={!hidden.has(c.id)} onChange={() => toggleCategory(c.id)} style={{ accentColor: c.color }} />

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useApp } from '../components/context';
 import { QuickAdd } from '../components/QuickAdd';
 import { TaskRow } from '../components/Rows';
-import { EmptyState, inputCls, Section } from '../components/ui';
+import { EmptyState, inputCls, List, Section } from '../components/ui';
 import type { Item } from '../db/schema';
 
 const byPriorityThenTitle = (a: Item, b: Item) => (a.priority ?? 9) - (b.priority ?? 9) || a.title.localeCompare(b.title);
@@ -30,8 +30,8 @@ export function TodosPage() {
   const recurring = data.items.filter((i) => i.kind === 'task' && i.rrule && (!category || i.categoryId === category));
 
   return (
-    <div className="mx-auto max-w-3xl p-4 sm:p-8">
-      <h1 className="mb-5 text-2xl font-semibold">To-dos</h1>
+    <div className="mx-auto max-w-3xl px-4 pb-10 pt-6 sm:px-8 sm:pt-12">
+      <h1 className="mb-5 text-[2rem] font-extrabold leading-tight tracking-[-0.03em]">To-dos</h1>
       <div className="mb-6">
         <QuickAdd />
       </div>
@@ -59,11 +59,11 @@ export function TodosPage() {
 
       <Section title={`Unscheduled (${unscheduled.length})`}>
         {unscheduled.length ? (
-          <div className="space-y-1.5">
+          <List>
             {unscheduled.map((t) => (
               <TaskRow key={t.id} item={t} />
             ))}
-          </div>
+          </List>
         ) : (
           <EmptyState>No unscheduled to-dos.</EmptyState>
         )}
@@ -71,11 +71,11 @@ export function TodosPage() {
 
       <Section title={`Scheduled (${scheduled.length})`}>
         {scheduled.length ? (
-          <div className="space-y-1.5">
+          <List>
             {scheduled.map((t) => (
               <TaskRow key={t.id} item={t} />
             ))}
-          </div>
+          </List>
         ) : (
           <EmptyState>No scheduled to-dos.</EmptyState>
         )}
