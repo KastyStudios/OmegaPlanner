@@ -46,7 +46,19 @@ function moveStart(p: FormState, date: string, time: string): FormState {
   const dur = Math.max(0, oldEnd.getTime() - oldStart.getTime());
   const newStart = fromInputs(date, p.allDay ? '00:00' : time);
   const newEnd = new Date(newStart.getTime() + dur);
-  return { ...p, startDate: date, startTime: time, endDate: toDateInput(newEnd), endTime: p.allDay ? p.endTime : toTimeInput(newEnd) };
+  // The weekly repeat day defaults to the start's weekday; keep following it until the user picks days.
+  const rec =
+    p.rec.weekdays.length === 1 && p.rec.weekdays[0] === weekdayIndex(oldStart)
+      ? { ...p.rec, weekdays: [weekdayIndex(newStart)] }
+      : p.rec;
+  return {
+    ...p,
+    rec,
+    startDate: date,
+    startTime: time,
+    endDate: toDateInput(newEnd),
+    endTime: p.allDay ? p.endTime : toTimeInput(newEnd),
+  };
 }
 
 function initialState({ item, occurrence, defaults = {} }: EditorRequest): FormState {

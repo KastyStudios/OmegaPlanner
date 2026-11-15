@@ -88,8 +88,10 @@ body {
 }
 
 @media (max-width: 640px) {
-  .fc .fc-toolbar {
-    flex-direction: column;
-    gap: 0.5rem;
+  .fc .fc-toolbar.fc-footer-toolbar {
+    margin-top: 0.5rem;
+  }
+  .fc .fc-toolbar-title {
+    font-size: 1rem;
   }
 }

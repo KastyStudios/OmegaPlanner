@@ -28,6 +28,22 @@ function saveFired(m: Map<string, number>) {
 
 export const notificationsSupported = () => typeof window !== 'undefined' && 'Notification' in window;
 
+const ICON = `${import.meta.env.BASE_URL}icon-192.png`;
+
+/**
+ * Show a notification. Phones (Android Chrome) only allow this through the service worker;
+ * desktop browsers also accept the plain constructor.
+ */
+export async function showNotification(title: string, options: NotificationOptions = {}): Promise<void> {
+  const opts = { icon: ICON, badge: ICON, ...options };
+  const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+  if (reg) {
+    await reg.showNotification(title, opts);
+    return;
+  }
+  new Notification(title, opts);
+}
+
 export async function checkReminders(now = new Date()): Promise<void> {
   if (!notificationsSupported() || Notification.permission !== 'granted') return;
   const [items, overrides, completions] = await Promise.all([
@@ -45,11 +61,10 @@ export async function checkReminders(now = new Date()): Promise<void> {
   for (const r of due) {
     const o = r.occurrence;
     const when = o.allDay ? 'today' : format(new Date(o.start), 'HH:mm');
-    new Notification(o.title, {
+    await showNotification(o.title, {
       body: `${o.item.kind === 'deadline' ? 'Due' : 'Starts'} ${when} · ${reminderLabel(r.minutesBefore)}`,
       tag: r.key,
-      icon: '/favicon.svg',
-    });
+    }).catch(() => {});
     fired.set(r.key, now.getTime());
   }
   if (due.length) saveFired(fired);

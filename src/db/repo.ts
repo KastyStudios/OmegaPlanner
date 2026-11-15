@@ -143,7 +143,8 @@ export async function deleteGoal(id: string): Promise<void> {
 
 export async function clearAllData(): Promise<void> {
   await db.transaction('rw', ALL_TABLES(), async () => {
-    await Promise.all(ALL_TABLES().map((t) => t.clear()));
+    // Delete row by row (not clear()) so deletions are tracked and reach synced devices.
+    for (const t of ALL_TABLES()) await t.toCollection().delete();
   });
 }
 

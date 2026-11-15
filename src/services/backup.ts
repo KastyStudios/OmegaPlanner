@@ -59,7 +59,8 @@ export async function importBackup(backup: BackupFile): Promise<void> {
   const tables = TABLES.map((t) => db.table(t));
   await db.transaction('rw', tables, async () => {
     for (const t of TABLES) {
-      await db.table(t).clear();
+      // Row-by-row delete (not clear()) so removals are tracked for sync.
+      await db.table(t).toCollection().delete();
       await db.table(t).bulkAdd(backup.data[t]);
     }
   });

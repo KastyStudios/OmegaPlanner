@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CalendarImport } from '../components/CalendarImport';
+import { SyncSettings } from '../components/SyncSettings';
 import { useApp } from '../components/context';
 import { Button, inputCls, Section } from '../components/ui';
 import { clearAllData, deleteCategory, saveCategory } from '../db/repo';
 import type { Category } from '../db/schema';
 import { downloadBackup, exportBackup, importBackup, validateBackup } from '../services/backup';
-import { checkReminders, notificationsSupported } from '../services/reminderService';
+import { checkReminders, notificationsSupported, showNotification } from '../services/reminderService';
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme';
 import { ColorPicker } from '../components/ColorPicker';
 import { itemColors, setDefaultItemColor, useDefaultItemColor } from '../lib/eventColors';
@@ -21,6 +22,13 @@ export function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl p-4 sm:p-8">
       <h1 className="mb-6 text-2xl font-semibold">Settings</h1>
+      <div id="sync">
+        <Section title="Sync between devices (Dropbox)">
+          <div className={card}>
+            <SyncSettings />
+          </div>
+        </Section>
+      </div>
       <CategoriesSection />
       <AppearanceSection />
       <NotificationsSection />
@@ -150,7 +158,7 @@ function NotificationsSection() {
             <span className="text-green-600">✓ Notifications are on.</span>
             <Button
               onClick={() =>
-                new Notification('OmegaPlanner', { body: 'Reminders are working.', icon: '/favicon.svg' })
+                void showNotification('OmegaPlanner', { body: 'Reminders are working.' })
               }
             >
               Send test notification

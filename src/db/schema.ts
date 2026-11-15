@@ -5,6 +5,8 @@ export interface Category {
   id: string;
   name: string;
   color: string; // hex
+  /** Set automatically on every local write (used by sync). */
+  updatedAt?: string;
 }
 
 /**
@@ -52,6 +54,7 @@ export interface Override {
   title?: string;
   notes?: string;
   cancelled?: boolean;
+  updatedAt?: string;
 }
 
 /** One checked-off occurrence of a recurring item. */
@@ -60,6 +63,7 @@ export interface Completion {
   itemId: string;
   occurrenceStart: string; // original start of the occurrence
   completedAt: string;
+  updatedAt?: string;
 }
 
 export type GoalMode = 'milestone' | 'habit';
@@ -74,6 +78,7 @@ export interface Goal {
   /** `count` is a number of times, or of hours when `unit` is 'hours' (may be fractional). */
   habitTarget?: { count: number; period: 'week' | 'month'; unit?: 'times' | 'hours' };
   createdAt: string;
+  updatedAt?: string;
 }
 
 export const newId = (): string => crypto.randomUUID();

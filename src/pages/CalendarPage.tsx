@@ -17,20 +17,37 @@ import { itemColors, useDefaultItemColor } from '../lib/eventColors';
 
 const VIEW_KEY = 'omegaplanner.calendarView';
 const DEFAULT_COLOR = '#64748b';
-const VIEWS = ['dayGridMonth', 'timeGridWeek', 'timeGridDay', 'listWeek'];
+const VIEWS = ['dayGridMonth', 'timeGridWeek', 'timeGrid3Day', 'timeGridDay', 'listWeek'];
+const PHONE_QUERY = '(max-width: 640px)';
+const isPhone = () => typeof window !== 'undefined' && window.matchMedia(PHONE_QUERY).matches;
 
 function storedView(): string {
+  const fallback = isPhone() ? 'timeGrid3Day' : 'timeGridWeek';
   try {
     const v = localStorage.getItem(VIEW_KEY);
-    return v && VIEWS.includes(v) ? v : 'timeGridWeek';
+    if (!v || !VIEWS.includes(v)) return fallback;
+    // A week doesn't fit on a phone: use 3 days there instead.
+    return isPhone() && v === 'timeGridWeek' ? 'timeGrid3Day' : v;
   } catch {
-    return 'timeGridWeek';
+    return fallback;
   }
+}
+
+function usePhone(): boolean {
+  const [phone, setPhone] = useState(isPhone);
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE_QUERY);
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return phone;
 }
 
 export function CalendarPage() {
   const { data, openEditor, askScope } = useApp();
   const calRef = useRef<FullCalendar>(null);
+  const phone = usePhone();
   const todoPanelRef = useRef<HTMLDivElement>(null);
   const [range, setRange] = useState(() => ({ start: addDays(startOfMonth(new Date()), -7), end: addDays(endOfMonth(new Date()), 7) }));
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -138,8 +155,18 @@ export function CalendarPage() {
           ref={calRef}
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
           initialView={storedView()}
-          headerToolbar={{ left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' }}
+          headerToolbar={
+            phone
+              ? { left: 'prev,next today', center: '', right: 'title' }
+              : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' }
+          }
+          footerToolbar={phone ? { center: 'dayGridMonth,timeGrid3Day,timeGridDay,listWeek' } : undefined}
+          views={{ timeGrid3Day: { type: 'timeGrid', duration: { days: 3 }, buttonText: '3 days' } }}
           buttonText={{ today: 'Today', month: 'Month', week: 'Week', day: 'Day', list: 'Agenda' }}
+          titleFormat={phone ? { month: 'short', day: 'numeric' } : undefined}
+          dayHeaderFormat={phone ? { weekday: 'short', day: 'numeric' } : undefined}
+          eventLongPressDelay={350}
+          selectLongPressDelay={350}
           firstDay={1}
           height="100%"
           nowIndicator
