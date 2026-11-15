@@ -71,7 +71,8 @@ export interface Goal {
   categoryId?: string;
   targetDate?: string; // YYYY-MM-DD
   mode: GoalMode;
-  habitTarget?: { count: number; period: 'week' | 'month' };
+  /** `count` is a number of times, or of hours when `unit` is 'hours' (may be fractional). */
+  habitTarget?: { count: number; period: 'week' | 'month'; unit?: 'times' | 'hours' };
   createdAt: string;
 }
 

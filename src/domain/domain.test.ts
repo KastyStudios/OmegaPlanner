@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Completion, Goal, Item, Override } from '../db/schema';
-import { goalProgress } from './goals';
+import { goalProgress, progressText } from './goals';
 import { buildRRule, describeRRule, expandOccurrences, parseRRule, seriesEnded, withUntilBefore, type Occurrence } from './recurrence';
 import { dueReminders } from './reminders';
 import { deleteOccurrence, editOccurrence, type ChangeSet } from './seriesEdit';
@@ -221,6 +221,27 @@ describe('goals', () => {
     ];
     const p = goalProgress(goal, [item], completions, now);
     expect(p).toMatchObject({ done: 2, total: 3, streak: 1 });
+  });
+
+  it('sums hours of checked-off timed occurrences, using moved/resized times', () => {
+    const goal: Goal = { id: 'g', title: 'Study 6h', mode: 'habit', habitTarget: { count: 6, period: 'week', unit: 'hours' }, createdAt: '' };
+    // Study Mon/Wed/Fri 18:00-19:00 (1h each) -> 3h planned this week (2-8 Nov)
+    const study = { ...gym, id: 'study', goalId: 'g', start: local(2026, 10, 26, 18), end: local(2026, 10, 26, 19) };
+    const essay = makeItem({ id: 'essay', kind: 'task', goalId: 'g', start: local(2026, 11, 3, 9), end: local(2026, 11, 3, 11, 30), done: true });
+    const allDay = makeItem({ id: 'ad', goalId: 'g', allDay: true, start: local(2026, 11, 4), end: local(2026, 11, 5), done: true });
+    // Wednesday's session was extended to 2.5h for this occurrence only.
+    const overrides: Override[] = [
+      { id: 'o', itemId: 'study', originalStart: local(2026, 11, 4, 18), start: local(2026, 11, 4, 17), end: local(2026, 11, 4, 19, 30) },
+    ];
+    const c = (iso: string): Completion => ({ id: iso, itemId: 'study', occurrenceStart: iso, completedAt: '' });
+    const completions = [
+      c(local(2026, 10, 26, 18)), c(local(2026, 10, 28, 18)), c(local(2026, 10, 30, 18)), // last week: 3h
+      c(local(2026, 11, 2, 18)), c(local(2026, 11, 4, 18)), // this week: 1h + 2.5h
+    ];
+    const p = goalProgress(goal, [study, essay, allDay], completions, now, overrides);
+    expect(p).toMatchObject({ unit: 'hours', done: 6, total: 6, ratio: 1, planned: 7, streak: 1 }); // 1 + 2.5 + 2.5 (essay); planned + Fri 1h
+    expect(progressText(p)).toBe('6 / 6 h this week');
+    expect(progressText({ ...p, done: 4.25, total: 7.5 })).toBe('4.3 / 7.5 h this week');
   });
 
   it('computes milestone progress from linked one-off tasks', () => {

@@ -5,9 +5,9 @@ import { PriorityTag } from '../components/Rows';
 import { Button, CategoryBadge, Checkbox, EmptyState, Field, inputCls, Modal, ProgressBar } from '../components/ui';
 import { deleteGoal, saveGoal, setItemDone } from '../db/repo';
 import type { Goal, GoalMode } from '../db/schema';
-import { goalProgress } from '../domain/goals';
+import { formatAmount, goalProgress, progressText } from '../domain/goals';
 import { describeRRule, seriesEnded } from '../domain/recurrence';
-import { fromInputs } from '../lib/dates';
+import { friendlyDay, fromInputs } from '../lib/dates';
 
 export function GoalsPage() {
   const { data } = useApp();
@@ -40,7 +40,7 @@ export function GoalsPage() {
 function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
   const { data, openEditor } = useApp();
   const now = new Date();
-  const p = goalProgress(goal, data.items, data.completions, now);
+  const p = goalProgress(goal, data.items, data.completions, now, data.overrides);
   const cat = data.categoryById.get(goal.categoryId ?? '');
   // Series that have finished (e.g. the old half of a split series) still count, but aren't listed.
   const linked = data.items.filter((i) => i.goalId === goal.id && !seriesEnded(i, now));
@@ -70,9 +70,7 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
 
       <div className="my-3">
         <div className="mb-1.5 flex items-baseline justify-between text-sm">
-          <span className="font-medium tabular-nums">
-            {p.done} / {p.total} {goal.mode === 'habit' ? p.periodLabel : 'tasks done'}
-          </span>
+          <span className="font-medium tabular-nums">{progressText(p)}</span>
           {p.streak !== undefined && p.streak > 0 && (
             <span className="text-xs text-amber-600">
               🔥 {p.streak} {goal.habitTarget?.period}
@@ -81,6 +79,12 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
           )}
         </div>
         <ProgressBar ratio={p.ratio} color={cat?.color} />
+        {p.unit === 'hours' && (
+          <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+            {formatAmount(p.planned ?? 0)} h planned {p.periodLabel}
+            {(p.planned ?? 0) < p.total && ` · schedule ${formatAmount(p.total - (p.planned ?? 0))} h more to reach the target`}
+          </p>
+        )}
       </div>
 
       <div className="mt-auto space-y-1">
@@ -105,6 +109,12 @@ function GoalCard({ goal, onEdit }: { goal: Goal; onEdit: () => void }) {
             )}
             <span className={`min-w-0 flex-1 truncate ${i.done ? 'text-slate-400 line-through' : ''}`}>{i.title}</span>
             {i.rrule && <span className="min-w-0 max-w-[55%] truncate text-xs text-slate-400">{describeRRule(i.rrule)}</span>}
+            {!i.rrule && i.start && (
+              <span className="shrink-0 text-xs tabular-nums text-slate-400">
+                {friendlyDay(new Date(i.start))}
+                {!i.allDay && i.end && ` · ${formatAmount((Date.parse(i.end) - Date.parse(i.start)) / 3_600_000)} h`}
+              </span>
+            )}
             <PriorityTag p={i.priority} />
           </div>
         ))}
@@ -129,6 +139,7 @@ function GoalEditor({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
   const [mode, setMode] = useState<GoalMode>(goal?.mode ?? 'habit');
   const [count, setCount] = useState(goal?.habitTarget?.count ?? 3);
   const [period, setPeriod] = useState<'week' | 'month'>(goal?.habitTarget?.period ?? 'week');
+  const [unit, setUnit] = useState<'times' | 'hours'>(goal?.habitTarget?.unit ?? 'times');
   const [categoryId, setCategoryId] = useState(goal?.categoryId ?? '');
   const [targetDate, setTargetDate] = useState(goal?.targetDate ?? '');
 
@@ -140,7 +151,10 @@ function GoalEditor({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
       title: title.trim(),
       description: description.trim() || undefined,
       mode,
-      habitTarget: mode === 'habit' ? { count: Math.max(1, count), period } : undefined,
+      habitTarget:
+        mode === 'habit'
+          ? { count: unit === 'hours' ? Math.max(0.5, Math.round(count * 2) / 2) : Math.max(1, Math.round(count)), period, unit }
+          : undefined,
       categoryId: categoryId || undefined,
       targetDate: targetDate || undefined,
     });
@@ -186,7 +200,8 @@ function GoalEditor({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
             <label className="flex items-start gap-2">
               <input type="radio" checked={mode === 'habit'} onChange={() => setMode('habit')} className="mt-1 accent-indigo-600" />
               <span>
-                <b>Habit</b>: do something a number of times per week or month. Completed occurrences of linked items count.
+                <b>Habit</b>: do something a number of times, or for a number of hours, per week or month. Checked-off
+                occurrences of linked items count.
               </span>
             </label>
             <label className="flex items-start gap-2">
@@ -198,15 +213,32 @@ function GoalEditor({ goal, onClose }: { goal?: Goal; onClose: () => void }) {
           </div>
         </Field>
         {mode === 'habit' && (
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 text-sm">
             <span>Target</span>
-            <input type="number" min={1} value={count} onChange={(e) => setCount(Number(e.target.value))} className={`${inputCls} !w-20`} aria-label="Times" />
-            <span>times per</span>
+            <input
+              type="number"
+              min={unit === 'hours' ? 0.5 : 1}
+              step={unit === 'hours' ? 0.5 : 1}
+              value={count}
+              onChange={(e) => setCount(Number(e.target.value))}
+              className={`${inputCls} !w-20`}
+              aria-label="Target amount"
+            />
+            <select value={unit} onChange={(e) => setUnit(e.target.value as 'times' | 'hours')} className={`${inputCls} !w-auto`} aria-label="Unit">
+              <option value="times">times</option>
+              <option value="hours">hours</option>
+            </select>
+            <span>per</span>
             <select value={period} onChange={(e) => setPeriod(e.target.value as 'week' | 'month')} className={`${inputCls} !w-auto`} aria-label="Period">
               <option value="week">week</option>
               <option value="month">month</option>
             </select>
           </div>
+        )}
+        {mode === 'habit' && unit === 'hours' && (
+          <p className="-mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Hours are the length of checked-off timed items linked to this goal (all-day items don't count).
+          </p>
         )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Category">

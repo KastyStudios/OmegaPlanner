@@ -4,7 +4,7 @@ import { useApp } from '../components/context';
 import { QuickAdd } from '../components/QuickAdd';
 import { OccurrenceRow, TaskRow } from '../components/Rows';
 import { Button, EmptyState, ProgressBar, Section } from '../components/ui';
-import { goalProgress } from '../domain/goals';
+import { goalProgress, progressText } from '../domain/goals';
 import { useOccurrences } from '../hooks/usePlanner';
 
 export function TodayPage() {
@@ -95,14 +95,14 @@ export function TodayPage() {
         <Section title="Goals">
           <div className="grid gap-3 sm:grid-cols-2">
             {data.goals.map((g) => {
-              const p = goalProgress(g, data.items, data.completions, now);
+              const p = goalProgress(g, data.items, data.completions, now, data.overrides);
               const color = data.categoryById.get(g.categoryId ?? '')?.color;
               return (
                 <div key={g.id} className="rounded-lg bg-white p-3 shadow-sm ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-800">
                   <div className="mb-2 flex items-baseline justify-between gap-2">
                     <span className="truncate text-sm font-medium">{g.title}</span>
                     <span className="shrink-0 text-xs tabular-nums text-slate-500">
-                      {p.done}/{p.total} {p.periodLabel ?? ''}
+                      {progressText(p)}
                     </span>
                   </div>
                   <ProgressBar ratio={p.ratio} color={color} />
