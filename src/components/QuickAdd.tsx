@@ -40,11 +40,11 @@ export function QuickAdd({ goalId }: { goalId?: string }) {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Add a to-do and press Enter…"
-        className={`${inputCls} min-w-0 flex-1 basis-60`}
+        className={`${inputCls} order-1 min-w-0 flex-1 basis-48`}
         aria-label="New to-do title"
       />
-      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputCls} !w-auto`} aria-label="Date (optional)" title="Date (optional)" />
-      <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`${inputCls} !w-auto`} aria-label="Category">
+      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputCls} order-3 min-w-0 flex-1 basis-[40%] sm:order-2 sm:!w-auto sm:flex-none sm:basis-auto`} aria-label="Date (optional)" title="Date (optional)" />
+      <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`${inputCls} order-4 min-w-0 flex-1 basis-[40%] sm:order-3 sm:!w-auto sm:flex-none sm:basis-auto`} aria-label="Category">
         <option value="">No category</option>
         {data.categories.map((c) => (
           <option key={c.id} value={c.id}>
@@ -52,7 +52,7 @@ export function QuickAdd({ goalId }: { goalId?: string }) {
           </option>
         ))}
       </select>
-      <Button type="submit" variant="primary" disabled={!title.trim()}>
+      <Button type="submit" variant="primary" disabled={!title.trim()} className="order-2 sm:order-4">
         Add
       </Button>
     </form>

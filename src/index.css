@@ -19,6 +19,22 @@ body {
   color: #e9ebef;
 }
 
+/* No zooming on phones: no double-tap zoom, no pinch (with the viewport meta and a
+   gesture guard in main.tsx), and no automatic zoom when a text field is focused,
+   which iOS does for any field under 16px. */
+html {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Keyboard focus is always visible, in pen blue. */
 :focus-visible {
   outline: 2px solid #2340c8;
