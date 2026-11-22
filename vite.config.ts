@@ -31,6 +31,26 @@ const contentSecurityPolicy = (): Plugin => ({
     { tag: 'meta', attrs: { 'http-equiv': 'Content-Security-Policy', content: CSP }, injectTo: 'head-prepend' },
     { tag: 'meta', attrs: { name: 'referrer', content: 'no-referrer' }, injectTo: 'head-prepend' },
   ],
+  // Cloudflare Pages reads _headers and sends these as real HTTP headers, which also allows
+  // frame-ancestors (ignored in a meta tag). Other hosts just serve it as a file.
+  generateBundle() {
+    this.emitFile({
+      type: 'asset',
+      fileName: '_headers',
+      source: [
+        '/*',
+        `  Content-Security-Policy: ${CSP}; frame-ancestors 'none'`,
+        '  X-Content-Type-Options: nosniff',
+        '  Referrer-Policy: no-referrer',
+        '  Permissions-Policy: camera=(), microphone=(), geolocation=()',
+        '/assets/*',
+        '  Cache-Control: public, max-age=31536000, immutable',
+        '/sw.js',
+        '  Cache-Control: no-cache',
+        '',
+      ].join('\n'),
+    });
+  },
 });
 
 export default defineConfig({
