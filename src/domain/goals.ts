@@ -1,5 +1,6 @@
 import { addMonths, addWeeks, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from 'date-fns';
 import type { Completion, Goal, Item, Override } from '../db/schema';
+import { local } from '../lib/zone';
 import { expandOccurrences } from './recurrence';
 
 export type GoalUnit = 'times' | 'hours' | 'tasks';
@@ -17,7 +18,8 @@ export interface GoalProgress {
   periodLabel?: string;
 }
 
-export function periodBounds(period: 'week' | 'month', at: Date): { start: Date; end: Date } {
+export function periodBounds(period: 'week' | 'month', date: Date): { start: Date; end: Date } {
+  const at = local(date);
   return period === 'week'
     ? { start: startOfWeek(at, { weekStartsOn: 1 }), end: endOfWeek(at, { weekStartsOn: 1 }) }
     : { start: startOfMonth(at), end: endOfMonth(at) };
@@ -99,7 +101,7 @@ export function goalProgress(
     const step = period === 'week' ? addWeeks : addMonths;
 
     if (goal.habitTarget.unit === 'hours') {
-      const periods = Array.from({ length: 105 }, (_, i) => periodBounds(period, step(now, -i)));
+      const periods = Array.from({ length: 105 }, (_, i) => periodBounds(period, step(local(now), -i)));
       const hours = hoursByPeriod(goal, items, overrides, completions, periods);
       const current = hours[0];
       let streak = current.done >= count ? 1 : 0;
@@ -122,7 +124,7 @@ export function goalProgress(
     const current = inPeriod(periodBounds(period, now));
     let streak = current >= count ? 1 : 0;
     for (let i = 1; i <= 104; i++) {
-      if (inPeriod(periodBounds(period, step(now, -i))) >= count) streak++;
+      if (inPeriod(periodBounds(period, step(local(now), -i))) >= count) streak++;
       else break;
     }
     return {

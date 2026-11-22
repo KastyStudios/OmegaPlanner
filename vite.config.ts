@@ -5,6 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa';
 // Served from the site root (Cloudflare Pages). Set BASE_PATH to host it under a sub-path.
 const base = process.env.BASE_PATH ?? '/';
 
+/** The OmegaPlanner Worker that sends push reminders (see mcp/). */
+const PUSH_SERVER = process.env.VITE_PUSH_SERVER ?? 'https://omegaplanner-mcp.aleksander-lala-06.workers.dev';
+
 /*
  * Content Security Policy for the built app (the dev server needs inline scripts, so build only).
  * Scripts may only come from the app itself; network access only to the app and Dropbox's API.
@@ -16,7 +19,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",
-  "connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com",
+  `connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com ${PUSH_SERVER}`,
   "worker-src 'self'",
   "manifest-src 'self'",
   "object-src 'none'",
@@ -55,6 +58,7 @@ const contentSecurityPolicy = (): Plugin => ({
 
 export default defineConfig({
   base,
+  define: { __PUSH_SERVER__: JSON.stringify(PUSH_SERVER) },
   plugins: [
     react(),
     contentSecurityPolicy(),
@@ -78,6 +82,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Push reminders: shows notifications sent by the Worker (public/push-sw.js).
+        importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: `${base}index.html`,
         // Never cache Dropbox traffic.

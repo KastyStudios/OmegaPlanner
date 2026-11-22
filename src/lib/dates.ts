@@ -1,4 +1,5 @@
 import { addDays, format, isSameDay, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { local } from './zone';
 
 export const toDateInput = (d: Date) => format(d, 'yyyy-MM-dd');
 export const toTimeInput = (d: Date) => format(d, 'HH:mm');
@@ -26,8 +27,8 @@ export function friendlyDay(d: Date): string {
 
 /** "18:00 – 19:00", "All day", "Due 17:00" ... */
 export function timeLabel(start: string, end: string, allDay: boolean, kind: string): string {
-  const s = new Date(start);
-  const e = new Date(end);
+  const s = local(start);
+  const e = local(end);
   if (kind === 'deadline') return allDay ? 'Due' : `Due ${format(s, 'HH:mm')}`;
   if (allDay) {
     const lastDay = addDays(e, -1);

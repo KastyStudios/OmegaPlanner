@@ -8,6 +8,8 @@ import { clearAllData, deleteCategory, saveCategory } from '../db/repo';
 import type { Category } from '../db/schema';
 import { downloadBackup, exportBackup, importBackup, validateBackup } from '../services/backup';
 import { checkReminders, notificationsSupported, showNotification } from '../services/reminderService';
+import { currentSubscription, disablePush, enablePush, needsHomeScreen, pushSupported, testPush } from '../services/pushService';
+import { useSyncStatus } from '../sync/syncService';
 import { getThemePref, setThemePref, type ThemePref } from '../lib/theme';
 import { ColorPicker } from '../components/ColorPicker';
 import { itemColors, setDefaultItemColor, useDefaultItemColor } from '../lib/eventColors';
@@ -146,43 +148,101 @@ function AppearanceSection() {
 }
 
 function NotificationsSection() {
-  const supported = notificationsSupported();
-  const [perm, setPerm] = useState(supported ? Notification.permission : 'denied');
   return (
     <Section title="Reminders">
       <div className={`${card} space-y-3 text-sm`}>
-        {!supported ? (
-          <p>This browser doesn't support notifications.</p>
-        ) : perm === 'granted' ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-green-600">✓ Notifications are on.</span>
-            <Button
-              onClick={() =>
-                void showNotification('OmegaPlanner', { body: 'Reminders are working.' })
-              }
-            >
-              Send test notification
-            </Button>
-          </div>
-        ) : perm === 'denied' ? (
-          <p>Notifications are blocked. Allow them for this site in your browser settings to get reminders.</p>
-        ) : (
-          <Button
-            variant="primary"
-            onClick={async () => {
-              const p = await Notification.requestPermission();
-              setPerm(p);
-              if (p === 'granted') void checkReminders();
-            }}
-          >
-            Enable notifications
-          </Button>
-        )}
+        {pushSupported() ? <PushReminders /> : <TabReminders />}
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Reminders fire only while OmegaPlanner is open in a browser tab. A pinned tab works well.
+          Set reminders per item in its editor (e.g. 15 min before). Each device turns notifications on separately.
         </p>
       </div>
     </Section>
+  );
+}
+
+/** Push: reminders arrive even when the app is closed (sent by the OmegaPlanner Worker). */
+function PushReminders() {
+  const sync = useSyncStatus();
+  const connected = sync.state !== 'disconnected';
+  const [on, setOn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string>();
+  useEffect(() => {
+    void currentSubscription().then((s) => setOn(!!s));
+  }, []);
+
+  const act = (fn: () => Promise<void>, after?: boolean, done?: string) => async () => {
+    setBusy(true);
+    setMessage(undefined);
+    try {
+      await fn();
+      if (after !== undefined) setOn(after);
+      if (done) setMessage(done);
+    } catch (e) {
+      setMessage((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (needsHomeScreen()) {
+    return <p>On iPhone and iPad, add OmegaPlanner to the Home Screen first (Share → Add to Home Screen), then open it from there to turn on reminders.</p>;
+  }
+  if (!connected) {
+    return <p>Connect Dropbox above to get reminders on this device, also when OmegaPlanner is closed.</p>;
+  }
+  return (
+    <>
+      {on ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-green-700 dark:text-green-400">✓ Reminders are on for this device, also when the app is closed.</span>
+          <Button disabled={busy} onClick={act(testPush, undefined, 'Test sent. It should arrive in a few seconds.')}>
+            Send test
+          </Button>
+          <Button variant="ghost" disabled={busy} onClick={act(disablePush, false)}>
+            Turn off
+          </Button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="primary" disabled={busy || on === null} onClick={act(enablePush, true, 'Reminders are on.')}>
+            Turn on reminders
+          </Button>
+          <span className="text-slate-500 dark:text-slate-400">Notifications on this device, also when the app is closed.</span>
+        </div>
+      )}
+      {message && <p className="text-slate-600 dark:text-slate-300">{message}</p>}
+    </>
+  );
+}
+
+/** Fallback for browsers without push: notifications while the app is open. */
+function TabReminders() {
+  const supported = notificationsSupported();
+  const [perm, setPerm] = useState(supported ? Notification.permission : 'denied');
+  if (!supported) return <p>This browser doesn't support notifications.</p>;
+  if (perm === 'denied') return <p>Notifications are blocked. Allow them for this site in your browser settings to get reminders.</p>;
+  return (
+    <>
+      {perm === 'granted' ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-green-700 dark:text-green-400">✓ Notifications are on.</span>
+          <Button onClick={() => void showNotification('OmegaPlanner', { body: 'Reminders are working.' })}>Send test notification</Button>
+        </div>
+      ) : (
+        <Button
+          variant="primary"
+          onClick={async () => {
+            const p = await Notification.requestPermission();
+            setPerm(p);
+            if (p === 'granted') void checkReminders();
+          }}
+        >
+          Enable notifications
+        </Button>
+      )}
+      <p className="text-xs text-slate-500 dark:text-slate-400">This browser only shows reminders while OmegaPlanner is open.</p>
+    </>
   );
 }
 

@@ -1,0 +1,23 @@
+{
+  // OmegaPlanner Worker: remote MCP server (claude.ai connector) + push reminders.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "omegaplanner-mcp",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": { "crons": ["* * * * *"] },
+  "kv_namespaces": [
+    { "binding": "OAUTH_KV", "id": "e1341cee55844b7094f5acf61182bb9c" },
+    { "binding": "PLANNER_KV", "id": "dd397afce91d46839c3ba5045bcecfd5" }
+  ],
+  "vars": {
+    "PUBLIC_URL": "https://omegaplanner-mcp.aleksander-lala-06.workers.dev",
+    "TIME_ZONE": "Europe/Amsterdam",
+    "APP_ORIGINS": "https://omegaplanner.pages.dev,http://localhost:5173,http://localhost:5179",
+    "DROPBOX_APP_KEY": "9ie94ild959vvn6",
+    "VAPID_PUBLIC_KEY": "BNN63jwUU9nxSsHTEsNXUOE2xuIK48oPhMGlui5avCSe7m0uGKlYhH4iEyIctpFZCo53Ga2EJ3GFC985VN8tnk0",
+    "VAPID_SUBJECT": "https://omegaplanner.pages.dev"
+  },
+  "observability": { "enabled": true }
+  // Secrets (wrangler secret put): VAPID_PRIVATE_JWK, ALLOWED_DROPBOX_ACCOUNTS
+}

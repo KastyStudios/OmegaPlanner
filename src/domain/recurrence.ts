@@ -1,5 +1,6 @@
 import { RRule, type Options, type Weekday } from 'rrule';
 import type { Completion, Item, Override } from '../db/schema';
+import { local, localDate } from '../lib/zone';
 
 /*
  * rrule computes in UTC. To keep wall-clock times stable across DST changes
@@ -7,14 +8,15 @@ import type { Completion, Item, Override } from '../db/schema';
  * local date-time is encoded as a UTC Date with the same components, expanded,
  * and decoded back to local time.
  */
-export function toFloating(d: Date): Date {
+export function toFloating(date: Date): Date {
+  const d = local(date);
   return new Date(
     Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds()),
   );
 }
 
 export function fromFloating(f: Date): Date {
-  return new Date(
+  return localDate(
     f.getUTCFullYear(),
     f.getUTCMonth(),
     f.getUTCDate(),
@@ -71,9 +73,9 @@ export function occurrenceEnd(item: Item, start: Date): Date {
   const dur = itemDuration(item);
   if (item.allDay) {
     const days = Math.max(item.kind === 'deadline' ? 0 : 1, Math.round(dur / DAY));
-    const e = new Date(start);
+    const e = local(start);
     e.setDate(e.getDate() + days);
-    return e;
+    return new Date(e.getTime());
   }
   return new Date(start.getTime() + dur);
 }

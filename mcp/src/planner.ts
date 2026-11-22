@@ -10,6 +10,7 @@ import { goalProgress, progressText } from '../../src/domain/goals';
 import { describeRRule, expandOccurrences, type Occurrence } from '../../src/domain/recurrence';
 import { deleteOccurrence, editOccurrence, type ChangeSet, type EditScope, type ItemChanges } from '../../src/domain/seriesEdit';
 import { timeLabel } from '../../src/lib/dates';
+import { isoOf, local, localDate } from '../../src/lib/zone';
 import type { Row, Snapshot } from '../../src/sync/merge';
 
 export interface Data {
@@ -66,9 +67,9 @@ export function parseLocal(s: string): { date: Date; hasTime: boolean } {
   const m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2}))?$/.exec(s.trim());
   if (m) {
     const [, y, mo, d, h, mi] = m;
-    return { date: new Date(+y, +mo - 1, +d, h ? +h : 0, mi ? +mi : 0), hasTime: h !== undefined };
+    return { date: localDate(+y, +mo - 1, +d, h ? +h : 0, mi ? +mi : 0), hasTime: h !== undefined };
   }
-  const d = new Date(s);
+  const d = local(s);
   if (Number.isNaN(d.getTime())) throw new Error(`Can't read the date "${s}". Use YYYY-MM-DD or YYYY-MM-DDTHH:mm (local time).`);
   return { date: d, hasTime: true };
 }
@@ -97,7 +98,7 @@ function findItem(data: Data, id: string): Item {
   return item;
 }
 
-const iso = (s: string) => parseLocal(s).date.toISOString();
+const iso = (s: string) => isoOf(parseLocal(s).date);
 
 function findOccurrence(data: Data, item: Item, occurrenceStart: string): Occurrence {
   const at = Date.parse(iso(occurrenceStart));
@@ -130,7 +131,7 @@ function occLine(data: Data, o: Occurrence): string {
 function itemLine(data: Data, i: Item): string {
   const bits = [
     `${i.done ? '[x]' : '[ ]'} ${i.title}`,
-    i.start && (i.kind === 'deadline' ? `due ${format(new Date(i.start), i.allDay ? 'EEE d MMM yyyy' : 'EEE d MMM yyyy HH:mm')}` : format(new Date(i.start), i.allDay ? 'EEE d MMM yyyy' : 'EEE d MMM yyyy HH:mm')),
+    i.start && (i.kind === 'deadline' ? `due ${format(local(i.start), i.allDay ? 'EEE d MMM yyyy' : 'EEE d MMM yyyy HH:mm')}` : format(local(i.start), i.allDay ? 'EEE d MMM yyyy' : 'EEE d MMM yyyy HH:mm')),
     catName(data, i.categoryId) && `#${catName(data, i.categoryId)}`,
     i.kind,
     i.rrule && `repeats: ${describeRRule(i.rrule)}`,
@@ -143,7 +144,7 @@ function itemLine(data: Data, i: Item): string {
 
 export function agenda(data: Data, fromDate: Date, days: number, now = new Date()): string {
   const out: string[] = [];
-  const first = startOfDay(fromDate);
+  const first = startOfDay(local(fromDate));
   const occs = expandOccurrences(data.items, data.overrides, data.completions, { start: first, end: addDays(first, days) });
   for (let d = 0; d < days; d++) {
     const day = addDays(first, d);
@@ -156,22 +157,22 @@ export function agenda(data: Data, fromDate: Date, days: number, now = new Date(
         return s === e ? s >= lo && s < hi : s < hi && e > lo;
       })
       .sort((a, b) => Number(b.allDay) - Number(a.allDay) || a.start.localeCompare(b.start));
-    out.push(`## ${format(day, 'EEEE d MMMM yyyy')}${isSameDay(day, now) ? ' (today)' : ''}`);
+    out.push(`## ${format(day, 'EEEE d MMMM yyyy')}${isSameDay(day, local(now)) ? ' (today)' : ''}`);
     out.push(todays.length ? todays.map((o) => occLine(data, o)).join('\n') : '(nothing planned)');
     out.push('');
   }
 
-  if (isSameDay(first, now)) {
-    const overdue = data.items.filter((i) => !i.rrule && !i.done && i.start && i.kind !== 'event' && new Date(i.start) < startOfDay(now));
+  if (isSameDay(first, local(now))) {
+    const overdue = data.items.filter((i) => !i.rrule && !i.done && i.start && i.kind !== 'event' && new Date(i.start) < startOfDay(local(now)));
     if (overdue.length) out.push('## Overdue', ...overdue.map((i) => itemLine(data, i)), '');
-    const until = addDays(startOfDay(now), 8);
+    const until = addDays(startOfDay(local(now)), 8);
     const soon =
       addDays(first, days) < until
         ? expandOccurrences(data.items, data.overrides, data.completions, { start: addDays(first, days), end: until }).filter(
             (o) => o.item.kind === 'deadline' && !o.done,
           )
         : [];
-    if (soon.length) out.push('## Deadlines in the next 7 days', ...soon.map((o) => `${format(new Date(o.start), 'EEE d MMM')}  ${occLine(data, o)}`), '');
+    if (soon.length) out.push('## Deadlines in the next 7 days', ...soon.map((o) => `${format(local(o.start), 'EEE d MMM')}  ${occLine(data, o)}`), '');
     const open = data.items.filter((i) => !i.start && !i.done).length;
     if (open) out.push(`(${open} unscheduled to-do${open > 1 ? 's' : ''}; see list_todos)`);
   }
@@ -215,10 +216,10 @@ export function goals(data: Data, now = new Date()): string {
 
 /** Free gaps of at least `minutes` between timed plans on one day, within working hours. */
 export function freeTime(data: Data, day: Date, minutes: number, from = '08:00', to = '20:00'): string {
-  const d = startOfDay(day);
+  const d = startOfDay(local(day));
   const at = (hm: string) => {
     const [h, m] = hm.split(':').map(Number);
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m || 0);
+    return localDate(d.getFullYear(), d.getMonth(), d.getDate(), h, m || 0);
   };
   const lo = at(from);
   const hi = at(to);
@@ -229,7 +230,7 @@ export function freeTime(data: Data, day: Date, minutes: number, from = '08:00',
   const gaps: string[] = [];
   let cursor = lo.getTime();
   for (const [s, e] of [...busy, [hi.getTime(), hi.getTime()] as const]) {
-    if (s - cursor >= minutes * 60_000) gaps.push(`${format(cursor, 'HH:mm')}–${format(s, 'HH:mm')}`);
+    if (s - cursor >= minutes * 60_000) gaps.push(`${format(local(cursor), 'HH:mm')}–${format(local(s), 'HH:mm')}`);
     cursor = Math.max(cursor, e);
   }
   return gaps.length
@@ -260,16 +261,16 @@ function times(kind: Item['kind'], input: ItemInput, fallbackAllDay = false) {
   const s = parseLocal(input.start);
   const allDay = input.all_day ?? (s.hasTime ? false : fallbackAllDay || !s.hasTime);
   if (allDay) {
-    const start = startOfDay(s.date);
-    if (kind === 'deadline') return { start: start.toISOString(), end: undefined, allDay };
+    const start = startOfDay(local(s.date));
+    if (kind === 'deadline') return { start: isoOf(start), end: undefined, allDay };
     // End is exclusive (next midnight); `end` given as the last day, inclusive.
-    const last = input.end ? startOfDay(parseLocal(input.end).date) : start;
-    return { start: start.toISOString(), end: addDays(last < start ? start : last, 1).toISOString(), allDay };
+    const last = input.end ? startOfDay(local(parseLocal(input.end).date)) : start;
+    return { start: isoOf(start), end: isoOf(addDays(last < start ? start : last, 1)), allDay };
   }
-  if (kind === 'deadline') return { start: s.date.toISOString(), end: undefined, allDay };
+  if (kind === 'deadline') return { start: isoOf(s.date), end: undefined, allDay };
   const end = input.end ? parseLocal(input.end).date : addMinutes(s.date, input.duration_minutes ?? 60);
   if (end <= s.date) throw new Error('The end must be after the start.');
-  return { start: s.date.toISOString(), end: end.toISOString(), allDay };
+  return { start: isoOf(s.date), end: isoOf(end), allDay };
 }
 
 const cleanRule = (r?: string) => r?.trim().replace(/^RRULE:/i, '') || undefined;
@@ -319,7 +320,7 @@ export function updateItem(data: Data, tx: Tx, id: string, input: ItemInput & { 
     const occ = item.rrule && input.occurrence_start ? findOccurrence(data, item, input.occurrence_start) : undefined;
     const curStart = occ?.start ?? item.start;
     const curEnd = occ?.end ?? item.end;
-    const fmt = (s: string, allDay: boolean) => format(new Date(s), allDay ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm");
+    const fmt = (s: string, allDay: boolean) => format(local(s), allDay ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm");
     const allDay = input.all_day ?? item.allDay;
     const start = input.start ?? (curStart ? fmt(curStart, allDay) : undefined);
     if (!start) throw new Error('Give a start to schedule this item.');

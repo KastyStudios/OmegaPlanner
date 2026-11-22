@@ -71,6 +71,9 @@ function saveAuth(a: StoredAuth | null) {
 
 export const isConnected = () => !!loadAuth()?.refreshToken;
 
+/** For the push server, which reads the planner with it to send reminders. */
+export const refreshToken = () => loadAuth()?.refreshToken;
+
 /* ---------------- OAuth (PKCE) ---------------- */
 
 function base64url(bytes: Uint8Array): string {
