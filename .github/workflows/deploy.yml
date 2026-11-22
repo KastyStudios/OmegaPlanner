@@ -1,8 +1,12 @@
-name: Deploy to GitHub Pages
+name: GitHub Pages redirect
 
+# The app is hosted on Cloudflare Pages (https://omegaplanner.pages.dev), which builds every push.
+# The old GitHub Pages address only serves a redirect there, plus a service worker that removes
+# the old installed app's offline cache.
 on:
   push:
     branches: [main]
+    paths: ['gh-pages-redirect/**', '.github/workflows/deploy.yml']
   workflow_dispatch:
 
 permissions:
@@ -19,25 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm test
-      - name: Build
-        run: npm run build
-        env:
-          # Served from https://<user>.github.io/<repo>/
-          BASE_PATH: /${{ github.event.repository.name }}/
-          # Optional: set a repository variable DROPBOX_APP_KEY so devices don't need to enter it.
-          VITE_DROPBOX_APP_KEY: ${{ vars.DROPBOX_APP_KEY }}
-      # Deep links like /calendar must load the app on GitHub Pages.
-      - run: cp dist/index.html dist/404.html
+      # Deep links like /OmegaPlanner/calendar land on 404.html, so it redirects too.
+      - run: cp gh-pages-redirect/index.html gh-pages-redirect/404.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: gh-pages-redirect
 
   deploy:
     needs: build

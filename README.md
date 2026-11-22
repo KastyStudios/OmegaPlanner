@@ -31,22 +31,23 @@ npm run build    # type-check + production build into dist/
 
 Reminders fire only while the app is open in a browser tab, because there is no server to push notifications.
 
-## Use it on your phone (GitHub Pages + Dropbox sync)
+## Use it on your phone (Cloudflare Pages + Dropbox sync)
 
 OmegaPlanner is a static web app that installs on your phone's home screen and works offline. Devices
 sync through a file in **your own Dropbox**. There is no OmegaPlanner account or server.
 
+The live app is at **https://omegaplanner.pages.dev**. The old GitHub Pages address only redirects there.
+
 ### 1. Publish the app (once)
 
-1. Create a **public** repository on GitHub, e.g. `OmegaPlanner` (only the code is public, your data never goes there).
-2. Push this project:
-   ```bash
-   git remote add origin https://github.com/<your-user>/OmegaPlanner.git
-   git push -u origin main
-   ```
-3. In the repository: **Settings → Pages → Source: GitHub Actions**.
-4. The *Deploy to GitHub Pages* workflow builds, tests and publishes on every push to `main`.
-   The app is then at `https://<your-user>.github.io/OmegaPlanner/`.
+1. Push this project to a GitHub repository.
+2. In the Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git**, pick the repository and set
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+   - Environment variables: `NODE_VERSION` = `22`, and optionally `VITE_DROPBOX_APP_KEY` (see below)
+3. Cloudflare builds and publishes every push to `main` at `https://<project>.pages.dev`. The build also
+   writes `dist/_headers`, so the security headers (CSP and others) are sent as real HTTP headers.
+   The *Test* workflow on GitHub runs the tests and a build on every push.
 
 ### 2. Create a Dropbox app (once, about 5 minutes)
 
@@ -54,15 +55,15 @@ sync through a file in **your own Dropbox**. There is no OmegaPlanner account or
    and give it a unique name (e.g. `OmegaPlanner-yourname`).
 2. **Permissions** tab: tick `files.content.write` and `files.content.read`, then **Submit**.
 3. **Settings** tab → **Redirect URIs**: add every address you open OmegaPlanner from, e.g.
-   `https://<your-user>.github.io/OmegaPlanner/` and `http://localhost:5173/`.
+   `https://<project>.pages.dev/` and `http://localhost:5173/`.
    Keep **Allow public clients (Implicit Grant & PKCE)** on **Allow**.
 4. Copy the **App key**. Either paste it in OmegaPlanner under **Settings → Sync** on each device, or add it
-   once as a repository variable (**Settings → Secrets and variables → Actions → Variables**, name
-   `DROPBOX_APP_KEY`) and re-run the deploy so every device has it built in. The app key is not a secret.
+   once as the Cloudflare Pages environment variable `VITE_DROPBOX_APP_KEY` and redeploy, so every
+   device has it built in. The app key is not a secret.
 
 ### 3. Connect your devices
 
-- **Phone:** open the GitHub Pages address, then install it (Android Chrome: menu → *Install app*;
+- **Phone:** open the app's address, then install it (Android Chrome: menu → *Install app*;
   iPhone Safari: Share → *Add to Home Screen*). Open **Settings → Sync → Connect Dropbox**.
 - **Computer:** do the same, on the address you want to keep using.
   Note: browser storage is per address, so data you entered at `http://localhost:5173` is only there.

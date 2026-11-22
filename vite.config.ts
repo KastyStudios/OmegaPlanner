@@ -2,7 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// GitHub Pages serves the app from /<repo>/; the deploy workflow sets BASE_PATH.
+// Served from the site root (Cloudflare Pages). Set BASE_PATH to host it under a sub-path.
 const base = process.env.BASE_PATH ?? '/';
 
 /*
