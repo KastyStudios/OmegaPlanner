@@ -31,6 +31,11 @@ npm run build    # type-check + production build into dist/
 
 Reminders fire only while the app is open in a browser tab, because there is no server to push notifications.
 
+## Ask an AI assistant about your day (MCP)
+
+The `mcp/` folder holds an MCP server, so assistants such as Claude Code can read your agenda, find
+free time and create or change plans. See [mcp/README.md](mcp/README.md).
+
 ## Use it on your phone (Cloudflare Pages + Dropbox sync)
 
 OmegaPlanner is a static web app that installs on your phone's home screen and works offline. Devices

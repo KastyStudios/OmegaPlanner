@@ -1,4 +1,4 @@
-import { EPOCH, SYNCED_TABLES, type SyncedTable, type Tombstone } from '../db/db';
+import { EPOCH, SYNCED_TABLES, type SyncedTable, type Tombstone } from '../db/syncTables';
 
 /*
  * Two-way merge of planner data. Every record carries `updatedAt`; deletions are kept as
