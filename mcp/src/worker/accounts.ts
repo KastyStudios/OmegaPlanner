@@ -38,9 +38,22 @@ export function isAllowed(env: Env, accountId: string): boolean {
 }
 
 export const getAccount = (env: Env, accountId: string) => env.PLANNER_KV.get<Account>(key(accountId), 'json');
-export const putAccount = (env: Env, accountId: string, a: Account) => env.PLANNER_KV.put(key(accountId), JSON.stringify(a));
+export async function putAccount(env: Env, accountId: string, a: Account): Promise<void> {
+  await env.PLANNER_KV.put(key(accountId), JSON.stringify(a));
+  const ids = await listAccountIds(env);
+  if (!ids.includes(accountId)) await env.PLANNER_KV.put(INDEX, JSON.stringify([...ids, accountId]));
+}
+
+/*
+ * Account ids live in one key rather than being found with KV `list`: the cron asks every minute,
+ * and the free plan allows only 1,000 list operations a day (but 100,000 reads).
+ */
+const INDEX = 'accounts';
 
 export async function listAccountIds(env: Env): Promise<string[]> {
+  const indexed = await env.PLANNER_KV.get<string[]>(INDEX, 'json');
+  if (indexed) return indexed;
+  // First run after the index was introduced: build it once from the existing keys.
   const ids: string[] = [];
   let cursor: string | undefined;
   do {
@@ -48,6 +61,7 @@ export async function listAccountIds(env: Env): Promise<string[]> {
     ids.push(...page.keys.map((k) => k.name.slice(5)));
     cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor);
+  await env.PLANNER_KV.put(INDEX, JSON.stringify(ids));
   return ids;
 }
 
